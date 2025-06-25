@@ -41,5 +41,60 @@ Users can cast votes securely via their crypto wallets (like MetaMask), and resu
 ```bash
 git clone https://github.com/your-username/DApp-Voting-System.git
 cd DApp-Voting-System
+```
 
+2. **cd into backend
+```bash
+cd backend
+```
+
+3. **Make sure node is installed, validate the by checking version
+```bash
+npm -v
+```
+
+4. **install hardhat & chainlink if not installed
+```bash
+npm install --save-dev hardhat
+npm install @chainlink/contracts@^0.5.1
+```
+
+5. **do npm install
+```bash
+npm install
+```
+
+6. **compile smartcontracts, skip sudo on windows powershell
+```bash
+sudo npx hardhat compile
+```
+
+7. **create the blockchain node, skip sudo on windows powershell
+```bash
+sudo npx hardhat node
+```
+
+8. **split the new terminal window, skip sudo on windows powershell
+```bash
+sudo npx hardhat run scripts/deploy.js --network localhost
+sudo npx hardhat run scripts/deployFundMe.js --network localhost
+```
+
+9. **now configure the metamask wallet and import accounts
+
+10. **cd into frontend and copy the abi and contract address in contract.js from HelloSolidity.json
+```bash
+cd ..
+cd frontend
+```
+
+11. **install react dependencies
+```bash
+npm install
+```
+
+12. **run the react side
+ ```bash
+ npm run
+```
 
