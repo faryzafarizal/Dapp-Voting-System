@@ -33,7 +33,7 @@ cd frontend
 npm install
 
 #12. run the react side
-npm start 
+ 
 
 
 

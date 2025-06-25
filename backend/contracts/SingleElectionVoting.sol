@@ -36,6 +36,8 @@ contract SingleElectionVoting {
 
     address public admin;
 
+    uint256 public constant MINIMUM_VOTING_AGE = 18;
+
     modifier onlyAdmin() {
         require(msg.sender == admin, "Only admin can perform this action.");
         _;
@@ -98,6 +100,7 @@ contract SingleElectionVoting {
         onlyAdmin 
         onlyBefore(election.startDate) 
     {
+        require(_age >= MINIMUM_VOTING_AGE, "Voter must be at least 18 years old.");
         require(election.voterList[_voterAddress].voterAddress == address(0), "Voter already added.");
         election.voterList[_voterAddress] = Voter(_voterAddress, _name, _age, false);
         election.voterAddresses.push(_voterAddress);
@@ -123,6 +126,27 @@ contract SingleElectionVoting {
         return election.finalized;
     }
 
+    function getElectionResults() external view returns (
+        Candidate[] memory candidates,
+        uint256 totalVotesCast,
+        uint256 totalEligibleVoters
+    ) {
+        require(election.finalized, "Election not finalized yet.");
+        
+        uint256 numCandidates = election.candidateAddresses.length;
+        candidates = new Candidate[](numCandidates);
+        totalVotesCast = 0;
+        
+        for(uint i = 0; i < numCandidates; i++) {
+            candidates[i] = election.candidateList[election.candidateAddresses[i]];
+            totalVotesCast += candidates[i].voteCount;
+        }
+        
+        totalEligibleVoters = election.voterAddresses.length;
+        return (candidates, totalVotesCast, totalEligibleVoters);
+    }
+    
+    
     function getWinner() external view returns (string memory name, string memory party, uint256 voteCount) {
         require(election.candidateAddresses.length > 0, "No candidates in the election.");
         require(election.finalized, "Election has not been finalized.");
@@ -154,6 +178,7 @@ contract SingleElectionVoting {
         console.log("Voter Address:", voter.voterAddress);
         console.log("Sender Address:", msg.sender);
         require(election.started);
+        require(voter.age >= MINIMUM_VOTING_AGE, "You must be at least 18 years old to vote.");
         require(voter.voterAddress != address(0), "You are not eligible to vote.");
         require(!voter.hasVoted, "You have already voted.");
         require(election.candidateList[_candidateAddress].candidateAddress != address(0), "Invalid candidate.");

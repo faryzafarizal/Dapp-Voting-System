@@ -9,6 +9,19 @@
         "type": "constructor"
       },
       {
+        "inputs": [],
+        "name": "MINIMUM_VOTING_AGE",
+        "outputs": [
+          {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
         "inputs": [
           {
             "internalType": "address",
@@ -183,6 +196,56 @@
             "internalType": "string",
             "name": "",
             "type": "string"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "getElectionResults",
+        "outputs": [
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "candidateAddress",
+                "type": "address"
+              },
+              {
+                "internalType": "string",
+                "name": "name",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "party",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "image",
+                "type": "string"
+              },
+              {
+                "internalType": "uint256",
+                "name": "voteCount",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct SingleElectionVoting.Candidate[]",
+            "name": "candidates",
+            "type": "tuple[]"
+          },
+          {
+            "internalType": "uint256",
+            "name": "totalVotesCast",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "totalEligibleVoters",
+            "type": "uint256"
           }
         ],
         "stateMutability": "view",

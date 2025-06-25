@@ -11,6 +11,9 @@ import {
   endElection,
   hasElectionFinalizedFromContract,
   getWinner,
+  getElectionResults, //faryza
+  getCandidateResults,
+
 } from "../contract"; // Ensure these functions are imported correctly
 import { PINATA_JWT } from "../config"; //ixgnoy
 import placeholderImage from "../Loading.png";
@@ -36,6 +39,10 @@ const AdminPanel = () => {
   const [candidateImage, setCandidateImage] = useState(null);
   const [candidateImageHash, setCandidateImageHash] = useState("");
   const [mapCandidateImages, setmapCandidateImages] = useState({});
+
+  const [electionResults, setElectionResults] = useState(null);
+  const [showResults, setShowResults] = useState(false);
+  const [selectedCandidateResults, setSelectedCandidateResults] = useState(null); //faryza
 
   const getFileFromIPFS = async (cid) => { // Uisng IPFS - ixgnoy
     try {
@@ -123,6 +130,9 @@ const AdminPanel = () => {
           //alert("Election name is empty.");
         } else {
           setWinnerName(winner.name);
+          // Fetch full results when getting winner
+          const results = await getElectionResults();
+          setElectionResults(results);
         }
       } catch (error) {
         console.error(error.message);
@@ -162,6 +172,27 @@ const AdminPanel = () => {
         console.error(error.message);
         //alert("Error Fetching election finalized state.");
       }
+
+      const fetchElectionResults = async () => {
+        try {
+          const results = await getElectionResults();
+          setElectionResults(results);
+          setShowResults(true);
+        } catch (error) {
+          console.error("Error fetching election results:", error);
+          alert("Failed to fetch election results");
+        }
+      };
+      
+      const fetchCandidateResults = async (candidateAddress) => {
+        try {
+          const results = await getCandidateResults(candidateAddress);
+          setSelectedCandidateResults(results);
+        } catch (error) {
+          console.error("Error fetching candidate results:", error);
+          alert("Failed to fetch candidate results");
+        }
+      };
     };
 
     fetchCandidates();
@@ -284,6 +315,26 @@ const AdminPanel = () => {
     }
   };
 
+  const fetchElectionResults = async () => {
+    try {
+      const results = await getElectionResults();
+      setElectionResults(results);
+      setShowResults(true);
+    } catch (error) {
+      console.error("Error fetching election results:", error);
+      alert("Failed to fetch election results");
+    }
+  };
+  
+  const fetchCandidateResults = async (candidateAddress) => {
+    try {
+      const results = await getCandidateResults(candidateAddress);
+      setSelectedCandidateResults(results);
+    } catch (error) {
+      console.error("Error fetching candidate results:", error);
+      alert("Failed to fetch candidate results");
+    }
+  };
   return (
     <div style={styles.container}>
       <h1 style={styles.header}>Admin Panel</h1>
@@ -391,17 +442,17 @@ const AdminPanel = () => {
                     style={{
                       width: "80px",
                       height: "80px",
-                      borderRadius: "50%", // Makes the image circular
+                      borderRadius: "50%",
                       objectFit: "cover",
                       marginRight: "20px",
                     }}
                     onLoad={(e) => {
                       if (e.target.src === placeholderImage && candidateImage) {
-                        e.target.src = candidateImage; // Switch to actual image if loaded
+                        e.target.src = candidateImage;
                       }
                     }}
                     onError={(e) => {
-                      e.target.src = placeholderImage; // Fallback to placeholder if an error occurs
+                      e.target.src = placeholderImage;
                     }}
                   />
                   {/* Candidate Details */}
@@ -422,7 +473,118 @@ const AdminPanel = () => {
           )}
         </ul>
       </div>
-      /* ixgnoy */
+
+      {/* Section to show election percentage */} 
+      {hasElectionFinalized && (
+        <div style={styles.section}>
+          <h2 style={styles.sectionTitle}>Election Results</h2>
+          <button 
+            style={styles.button} 
+            onClick={fetchElectionResults}
+          >
+            View Full Results
+          </button>
+
+          {showResults && electionResults && (
+            <>
+              <div style={styles.resultsContainer}>
+                <h3>Overall Results</h3>
+                <p>Total Votes Cast: {electionResults.totalVotesCast}</p>
+                <p>Total Eligible Voters: {electionResults.totalEligibleVoters}</p>
+                <p>Voter Turnout: {Math.round(
+                  (electionResults.totalVotesCast / electionResults.totalEligibleVoters) * 100
+                )}%</p>
+
+                <h3>Candidate Performance</h3>
+                <ul style={styles.list}>
+                  {electionResults.candidates.map((candidate, index) => {
+                    const candidateImage = mapCandidateImages[candidate.address];
+                    return (
+                      <li key={index} style={styles.resultItem}>
+                        <div style={styles.candidateInfo}>
+                          <img
+                            src={candidateImage || placeholderImage}
+                            alt={candidate.name}
+                            style={styles.candidateThumbnail}
+                          />
+                          <div>
+                            <p><strong>{candidate.name}</strong> ({candidate.party})</p>
+                            <p>Votes: {candidate.voteCount}</p>
+                            <button 
+                              style={styles.smallButton}
+                              onClick={() => fetchCandidateResults(candidate.address)}
+                            >
+                              View Details
+                            </button>
+                          </div>
+                        </div>
+                        {selectedCandidateResults && 
+                          selectedCandidateResults.name === candidate.name && (
+                            <div style={styles.detailBox}>
+                              <p>Percentage: {selectedCandidateResults.percentage}%</p>
+                              <p>Total Votes: {selectedCandidateResults.voteCount}</p>
+                            </div>
+                          )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+
+              {/* Podium Section - Moved inside the results section */}
+              {winnerName && (
+                <div style={styles.section}>
+                  <h2 style={styles.sectionTitle}>Official Election Results</h2>
+                  <div style={styles.electionPodium}>
+                    {/* 1st Place (Center) */}
+                    <div style={styles.firstPlace}>
+                      <div style={styles.winnerCrown}>👑</div>
+                      <div style={styles.podiumTop}>
+                        <h3 style={styles.winnerTitle}>Elected</h3>
+                        <p style={styles.winnerName}>{winnerName}</p>
+                        {electionResults && (
+                          <div style={styles.winnerStats}>
+                            <p>Party: {electionResults.candidates.find(c => c.name === winnerName)?.party}</p>
+                            <p>Votes: {electionResults.candidates.find(c => c.name === winnerName)?.voteCount}</p>
+                            <p>{Math.round(
+                              (electionResults.candidates.find(c => c.name === winnerName)?.voteCount /
+                              electionResults.totalVotesCast) * 100
+                            )}% of total votes</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Runner-ups (Side columns) */}
+                    <div style={styles.runnerUps}>
+                      <div style={styles.runnerUp}>
+                        <h4>Second Place</h4>
+                        {electionResults?.candidates?.[1] ? (
+                          <>
+                            <p>{electionResults.candidates[1].name}</p>
+                            <p>{electionResults.candidates[1].voteCount} votes</p>
+                          </>
+                        ) : <p>No candidate</p>}
+                      </div>
+                      
+                      <div style={styles.runnerUp}>
+                        <h4>Third Place</h4>
+                        {electionResults?.candidates?.[2] ? (
+                          <>
+                            <p>{electionResults.candidates[2].name}</p>
+                            <p>{electionResults.candidates[2].voteCount} votes</p>
+                          </>
+                        ) : <p>No candidate</p>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    
       {/* Section to manage voters */}
       <div style={styles.section}>
         <h2 style={styles.sectionTitle}>Manage Voters</h2>
@@ -540,6 +702,103 @@ const styles = {
     borderBottom: "2px solid #007BFF",
     paddingBottom: "5px",
   },
+  resultsContainer: {
+    marginTop: '20px',
+    padding: '15px',
+    backgroundColor: '#fff',
+    borderRadius: '8px',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+  },
+  resultItem: {
+    marginBottom: '15px',
+    padding: '10px',
+    borderBottom: '1px solid #eee'
+  },
+  candidateInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '15px'
+  },
+  candidateThumbnail: {
+    width: '50px',
+    height: '50px',
+    borderRadius: '50%',
+    objectFit: 'cover'
+  },
+  detailBox: {
+    marginTop: '10px',
+    padding: '10px',
+    backgroundColor: '#f5f5f5',
+    borderRadius: '5px'
+  },
+  smallButton: {
+    padding: '5px 10px',
+    fontSize: '0.8em',
+    backgroundColor: '#6c757d',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer'
+  },
+  electionPodium: {
+    display: 'flex',
+    justifyContent: 'center',
+    gap: '30px',
+    marginTop: '40px',
+    background: '#f8f9fa',
+    padding: '30px',
+    borderRadius: '8px',
+    border: '1px solid #e0e0e0'
+  },
+  firstPlace: {
+    textAlign: 'center',
+    minWidth: '300px',
+    position: 'relative'
+  },
+  winnerCrown: {
+    fontSize: '3rem',
+    position: 'absolute',
+    top: '-40px',
+    left: '50%',
+    transform: 'translateX(-50%)'
+  },
+  podiumTop: {
+    background: '#ffffff',
+    padding: '25px',
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+    borderTop: '5px solid #28a745'
+  },
+  winnerTitle: {
+    color: '#28a745',
+    fontSize: '1.8rem',
+    marginBottom: '10px'
+  },
+  winnerName: {
+    fontSize: '1.5rem',
+    fontWeight: 'bold',
+    margin: '15px 0'
+  },
+  winnerStats: {
+    background: '#f1f8ff',
+    padding: '15px',
+    borderRadius: '5px',
+    marginTop: '15px'
+  },
+  runnerUps: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
+    justifyContent: 'center'
+  },
+  runnerUp: {
+    background: '#ffffff',
+    padding: '20px',
+    borderRadius: '6px',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+    minWidth: '200px',
+    borderTop: '3px solid #6c757d'
+  }
 };
 
 export default AdminPanel;
